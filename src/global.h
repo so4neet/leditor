@@ -11,6 +11,7 @@
 #define CFG_DELIMITER_POINT2 ">"
 #define CFG_DELIMITER_SUB    '.'
 #define CFG_COMMENT_CHAR     '/'
+#define INIT_ALLOC_CAPACITY  256
 
 // Global Structs
 typedef struct LED_Window {
@@ -27,6 +28,13 @@ typedef struct LED_Window {
   SDL_Window   *surface;
   TTF_Font     *font;
 } LED_Window;
+
+typedef struct InputBuffer {
+    char    *text;              // Null-terminated buffer
+    size_t  length;             // Current byte size of buffer
+    size_t  capacity;           // Alloc'd size of buffer
+    size_t  cursor;             // Cursor index in buffer
+} InputBuffer;
 
 typedef enum log_lvl {
     fatal = 0,

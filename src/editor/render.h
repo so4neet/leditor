@@ -1,5 +1,6 @@
 #pragma once
 #include <SDL2/SDL.h>
 #include <SDL2/SDL_ttf.h>
+#include "../global.h"
 
-SDL_Texture *create_text_texture(SDL_Renderer *renderer, TTF_Font *font, const char *text, SDL_Color color, SDL_Rect *out_rect);
+void render_buffer(SDL_Renderer *renderer, TTF_Font *font, InputBuffer *buffer, SDL_Color textColor);
