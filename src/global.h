@@ -1,6 +1,8 @@
 #pragma once
 #include <SDL2/SDL.h>
 #include <SDL2/SDL_ttf.h>
+#include <stdlib.h>
+#include <string.h>
 
 // Global Defines
 #define DEF_WIN_WIDTH        854
@@ -29,11 +31,20 @@ typedef struct LED_Window {
   TTF_Font     *font;
 } LED_Window;
 
+typedef struct Line {
+    char    *data;
+    size_t  length;
+    size_t  capacity;
+} Line;
+
 typedef struct InputBuffer {
-    char    *text;              // Null-terminated buffer
-    size_t  length;             // Current byte size of buffer
-    size_t  capacity;           // Alloc'd size of buffer
-    size_t  cursor;             // Cursor index in buffer
+    Line    *lines;
+    size_t  line_count;
+    size_t  line_capacity;
+
+    size_t  cursor_row;
+    size_t  cursor_col;
+    size_t  preferred_col;
 } InputBuffer;
 
 typedef enum log_lvl {
