@@ -63,3 +63,49 @@ typedef enum log_lvl {
     warn  = 2,
     debug = 3
 } log_lvl;
+
+typedef enum EditorAction {
+    ACTION_NONE = 0,
+    ACTION_MOVE_LEFT,
+    ACTION_MOVE_RIGHT,
+    ACTION_MOVE_UP,
+    ACTION_MOVE_DOWN,
+    ACTION_SAVE_BUFFER,
+    ACTION_LOAD_BUFFER,
+    ACTION_PAGE_UP,
+    ACTION_PAGE_DOWN,
+    ACTION_DELETE_LINE,
+    ACTION_DELETE_WORD_PREV,
+    ACTION_DELETE_WORD_NEXT
+} EditorAction;
+
+typedef struct KeyCombo {
+    SDL_Keycode key;
+    uint16_t mod;
+} KeyCombo;
+
+typedef struct ChordBinding {
+    KeyCombo leader;
+    KeyCombo trigger;
+    EditorAction action;
+} ChordBinding;
+
+static const ChordBinding BIND_TABLE[] = {
+    // Single Keypress Binds
+    { {0, 0},       {SDLK_LEFT, 0},         ACTION_MOVE_LEFT },
+    { {0, 0},       {SDLK_RIGHT, 0},        ACTION_MOVE_RIGHT},
+    { {0, 0},       {SDLK_UP, 0},           ACTION_MOVE_UP   },
+    { {0, 0},       {SDLK_DOWN, 0},         ACTION_MOVE_DOWN },
+
+    { {0, 0},       {SDLK_h, KMOD_CTRL},    ACTION_MOVE_LEFT },
+    { {0, 0},       {SDLK_l, KMOD_CTRL},    ACTION_MOVE_RIGHT},
+    { {0, 0},       {SDLK_j, KMOD_CTRL},    ACTION_MOVE_DOWN },
+    { {0, 0},       {SDLK_k, KMOD_CTRL},    ACTION_MOVE_UP   },
+};
+
+#define BINDING_COUNT (sizeof(BIND_TABLE) / sizeof(BIND_TABLE[0]))
+
+typedef struct InputDispatcher {
+    KeyCombo pending_leader;
+    Uint32 leader_timestamp;
+} InputDispatcher;
