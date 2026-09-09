@@ -1,5 +1,6 @@
 #pragma once
 #include <SDL2/SDL.h>
+#include <SDL2/SDL_ttf.h>
 
 // Global Defines
 #define DEF_WIN_WIDTH        854
@@ -24,6 +25,7 @@ typedef struct LED_Window {
   int          fontSize;
   SDL_Renderer *renderer;
   SDL_Window   *surface;
+  TTF_Font     *font;
 } LED_Window;
 
 typedef enum log_lvl {

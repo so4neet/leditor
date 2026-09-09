@@ -46,8 +46,13 @@ int LED_Init_Window(LED_Window *window) {
     window->width = DEF_WIN_WIDTH;
     window->height = DEF_WIN_HEIGHT;
     if (SDL_Init(SDL_INIT_VIDEO) != 0) {
-      l_fatal("SDL_INIT_VIDEO Failure: %s\n", SDL_GetError());
+      l_fatal("SDL_INIT_VIDEO Failure: %s", SDL_GetError());
       return 1;
+    }
+    if (TTF_Init() != 0) {
+        l_fatal("TTF_Init Failure: %s", TTF_GetError());
+        SDL_Quit();
+        return 1;
     }
 
     window->surface = SDL_CreateWindow(window->title, 0, 0, window->width, window->height, SDL_WINDOW_RESIZABLE);
@@ -55,6 +60,14 @@ int LED_Init_Window(LED_Window *window) {
     char *fpath = find_font_path(window->fontFamily);
     if (fpath) {
         l_debug("Resolved font '%s' to '%s'", window->fontFamily, fpath);
+
+        window->font = TTF_OpenFont(fpath, window->fontSize > 0 ? window->fontSize : 12);
+        if (!window->font) {
+            l_error("Failed to load font '%s'", TTF_GetError());
+        }
+        free(fpath);
+    } else {
+        l_warn("Couldn't find system font for '%s'. Falling back to default.", window->fontFamily);
     }
     return 0;
 }
