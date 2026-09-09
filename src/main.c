@@ -21,6 +21,12 @@ int main(int argc, char **argv) {
     SDL_Color text_color = {220, 220, 220, 255};
     window->atlas = create_glyph_atlas(window->renderer, window->font, text_color);
     InputBuffer *buffer = buffer_create();
+    if (argc > 1) {
+        const char *filename = argv[1];
+        if (!buffer_load_file(buffer, filename)) {
+            l_error("Failed to open %s, opening empty buffer.", filename);
+        }
+    }
     SDL_StartTextInput();
 
     while (!window->shouldClose) {

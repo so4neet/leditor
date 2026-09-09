@@ -150,3 +150,73 @@ void buffer_move_cursor(InputBuffer *buffer, int row, int column) {
         buffer->cursor_col = (buffer->preferred_col > len) ? len : buffer->preferred_col;
     }
 }
+
+// Save/load logic (holy shit this is actually becoming usable lmfao)
+
+void buffer_clear(InputBuffer *buffer) {
+    for (size_t i = 0; i < buffer->line_count; i++) {
+        free(buffer->lines[i].data);
+    }
+    buffer->line_count = 0;
+}
+
+int buffer_load_file(InputBuffer *buffer, const char *filepath) {
+    FILE *f = fopen(filepath, "r");
+    if (!f) return 0;
+
+    buffer_clear(buffer);
+
+    Line cur_line = {0};
+    cur_line.capacity = 32;
+    cur_line.data = calloc(cur_line.capacity, sizeof(char));
+
+    int c;
+    while ((c = fgetc(f)) != EOF) {
+        if (c == '\r') continue;
+        if (c == '\n') {
+            if (buffer->line_count >= buffer->line_capacity) {
+                buffer->line_capacity = buffer->line_capacity ? buffer->line_capacity * 2 : 8;
+                buffer->lines = realloc(buffer->lines, buffer->line_capacity * sizeof(Line));
+            }
+            buffer->lines[buffer->line_count++] = cur_line;
+
+            cur_line.capacity = 32;
+            cur_line.data = calloc(cur_line.capacity, sizeof(char));
+            cur_line.length = 0;
+        } else {
+            line_insert_single(&cur_line, cur_line.length, (char)c);
+        }
+    }
+    if (buffer->line_count >= buffer->line_capacity) {
+        buffer->line_capacity = buffer->line_capacity ? buffer->line_capacity * 2 : 8;
+        buffer->lines = realloc(buffer->lines, buffer->line_capacity * sizeof(Line));
+    }
+    buffer->lines[buffer->line_count++] = cur_line;
+
+    fclose(f);
+
+    // Reset cursor position
+    buffer->cursor_row = 0;
+    buffer->cursor_col = 0;
+    buffer->preferred_col = 0;
+
+    return 1;
+}
+
+int buffer_save_file(InputBuffer *buffer, const char *filepath) {
+    FILE *f = fopen(filepath, "w");
+    if (!f) return 1;
+
+    for (size_t i = 0; i < buffer->line_count; i++) {
+        Line *line = &buffer->lines[i];
+        if (line->length > 0) {
+            fwrite(line->data, sizeof(char), line->length, f);
+        }
+        if (i < buffer->line_count - 1) {
+            fputc('\n', f);
+        }
+    }
+
+    fclose(f);
+    return 0;
+}
