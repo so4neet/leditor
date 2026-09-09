@@ -31,25 +31,20 @@ int main(int argc, char **argv) {
 
                 case SDL_TEXTINPUT:
                     for (int i = 0; event.text.text[i] != '\0'; i++) {
-                        buffer_insert(buffer, event.text.text[i]);
+                        buffer_insert_line(buffer, event.text.text[i]);
                     }
                     break;
 
                 case SDL_KEYDOWN:
                     switch (event.key.keysym.sym) {
-                        case SDLK_BACKSPACE:
-                            buffer_remove(buffer);
-                            break;
-                        case SDLK_LEFT:
-                            if (buffer->cursor > 0) buffer->cursor--;
-                            break;
-                        case SDLK_RIGHT:
-                            if (buffer->cursor < buffer->length) buffer->cursor++;
-                            break;
-                        case SDLK_RETURN:
-                            buffer_insert(buffer, '\n');
-                            break;
+                        case SDLK_BACKSPACE: buffer_remove_line(buffer); break;
+                        case SDLK_RETURN:    buffer_split_line(buffer); break;
+                        case SDLK_LEFT:      buffer_move_cursor(buffer, 0, -1); break;
+                        case SDLK_RIGHT:     buffer_move_cursor(buffer, 0,  1); break;
+                        case SDLK_UP:        buffer_move_cursor(buffer, -1, 0); break;
+                        case SDLK_DOWN:      buffer_move_cursor(buffer,  1, 0); break;
                 }
+                break;
             }
         }
         SDL_SetRenderDrawColor(window->renderer, 20, 20, 20, 255);
@@ -62,7 +57,6 @@ int main(int argc, char **argv) {
     SDL_StopTextInput();
     TTF_Quit();
     SDL_Quit();
-    if (buffer) free_buffer(buffer);
     free(window);
     return 0;
 }
