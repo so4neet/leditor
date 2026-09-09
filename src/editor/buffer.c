@@ -220,3 +220,9 @@ int buffer_save_file(InputBuffer *buffer, const char *filepath) {
     fclose(f);
     return 0;
 }
+
+void destroy_buffer(InputBuffer *buffer) {
+    buffer_clear(buffer);
+    free(buffer->lines);
+    free(buffer);
+}

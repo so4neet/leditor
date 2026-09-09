@@ -125,7 +125,7 @@ int load_config(LED_Window *window) {
                 window->isMultiModal = 1;
                 l_debug("Key 'isModal' set to 'multiModal'.");
             } else {
-                l_warn("[LINE %zu] :: Incorrect value '%s' for 'isModal'. Ignoring.");
+                l_warn("[LINE %zu] :: Incorrect value '%s' for 'isModal'. Ignoring.", line_num, full_key);
                 window->isModal = 0;
             }
             continue;

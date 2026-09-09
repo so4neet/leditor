@@ -11,7 +11,7 @@
 #include "editor/input.h"
 
 int main(int argc, char **argv) {
-    LED_Window *window = malloc(sizeof(LED_Window));
+    LED_Window *window = calloc(1, sizeof(LED_Window));
     if (window == NULL) {
         l_fatal("Failed to alloc window memory.");
         return 1;
@@ -86,6 +86,8 @@ int main(int argc, char **argv) {
         SDL_RenderPresent(window->renderer);
     }
     SDL_StopTextInput();
+    destroy_buffer(buffer);
+    destroy_glyph_atlas(window->atlas);
     TTF_Quit();
     SDL_Quit();
     free(window);
