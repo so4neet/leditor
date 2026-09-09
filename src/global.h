@@ -1,18 +1,34 @@
 #pragma once
+#include <SDL2/SDL.h>
 
 // Global Defines
 #define DEF_WIN_WIDTH        854
 #define DEF_WIN_HEIGHT       480
 #define DEF_WIN_TITLE        "LED"
+#define CFG_DELIMITER_SET    "::"
+#define CFG_DELIMITER_POINT1 "-"
+#define CFG_DELIMITER_POINT2 ">"
+#define CFG_DELIMITER_SUB    '.'
+#define CFG_COMMENT_CHAR     '/'
 
 // Global Structs
 typedef struct LED_Window {
   // Bitfields instead of bools cause why not
-  unsigned int shouldWindowClose : 1;
+  unsigned int shouldClose : 1;
   unsigned int isModal : 1;
   unsigned int isMultiModal : 1;
-  char         *windowTitle;
-  int          windowWidth;
-  int          windowHeight;
-  char         *fontPath;
+  char         *title;
+  int          width;
+  int          height;
+  char         *fontFamily;
+  int          fontSize;
+  SDL_Renderer *renderer;
+  SDL_Window   *surface;
 } LED_Window;
+
+typedef enum log_lvl {
+    fatal = 0,
+    error = 1,
+    warn  = 2,
+    debug = 3
+} log_lvl;
