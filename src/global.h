@@ -12,10 +12,19 @@
 #define CFG_DELIMITER_POINT1 "-"
 #define CFG_DELIMITER_POINT2 ">"
 #define CFG_DELIMITER_SUB    '.'
-#define CFG_COMMENT_CHAR     '/'
-#define INIT_ALLOC_CAPACITY  256
+#define ASCII_FIRST_CHAR      32
+#define ASCII_LAST_CHAR       126
+#define ASCII_NUM_CHARS       (ASCII_LAST_CHAR - ASCII_FIRST_CHAR + 1)
 
 // Global Structs
+
+typedef struct GlyphAtlas {
+    SDL_Texture *texture;
+    int char_w;
+    int char_h;
+    int cols;
+} GlyphAtlas;
+
 typedef struct LED_Window {
   // Bitfields instead of bools cause why not
   unsigned int shouldClose : 1;
@@ -29,6 +38,7 @@ typedef struct LED_Window {
   SDL_Renderer *renderer;
   SDL_Window   *surface;
   TTF_Font     *font;
+  GlyphAtlas   *atlas;
 } LED_Window;
 
 typedef struct Line {

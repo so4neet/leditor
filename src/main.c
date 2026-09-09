@@ -18,6 +18,8 @@ int main(int argc, char **argv) {
         load_config(window);
         LED_Init_Window(window);
     }
+    SDL_Color text_color = {220, 220, 220, 255};
+    window->atlas = create_glyph_atlas(window->renderer, window->font, text_color);
     InputBuffer *buffer = buffer_create();
     SDL_StartTextInput();
 
@@ -50,8 +52,7 @@ int main(int argc, char **argv) {
         SDL_SetRenderDrawColor(window->renderer, 20, 20, 20, 255);
         SDL_RenderClear(window->renderer);
 
-        SDL_Color text_color = {220, 220, 220, 255};
-        render_buffer(window->renderer, window->font, buffer, text_color);
+        render_buffer(window->renderer, window->atlas, buffer, text_color);
         SDL_RenderPresent(window->renderer);
     }
     SDL_StopTextInput();
