@@ -1,6 +1,5 @@
-#include <SDL2/SDL.h>
-#include <SDL2/SDL_ttf.h>
-#include <SDL2/SDL_video.h>
+#include <SDL3/SDL.h>
+#include <SDL3_ttf/SDL_ttf.h>
 #include <fontconfig/fontconfig.h>
 #include "../logger/logger.h"
 #include "../global.h"
@@ -47,26 +46,44 @@ int LED_Init_Window(LED_Window *window) {
     window->width = DEF_WIN_WIDTH;
     window->height = DEF_WIN_HEIGHT;
 
-    if (SDL_Init(SDL_INIT_VIDEO) != 0) {
+    // SDL3: SDL_Init() returns bool now (true = success)
+    if (!SDL_Init(SDL_INIT_VIDEO)) {
       l_fatal("SDL_INIT_VIDEO Failure: %s", SDL_GetError());
       return 1;
     }
-    if (TTF_Init() != 0) {
-        l_fatal("TTF_Init Failure: %s", TTF_GetError());
+    if (!TTF_Init()) {
+        l_fatal("TTF_Init Failure: %s", SDL_GetError());
         SDL_Quit();
         return 1;
     }
     SDL_GL_SetAttribute(SDL_GL_ALPHA_SIZE, 8);
-    window->surface = SDL_CreateWindow(window->title, SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, window->width, window->height, SDL_WINDOW_RESIZABLE | SDL_WINDOW_ALLOW_HIGHDPI | SDL_WINDOW_OPENGL);
-    window->renderer = SDL_CreateRenderer(window->surface, -1, SDL_RENDERER_ACCELERATED | SDL_RENDERER_PRESENTVSYNC);
+    // SDL_WINDOW_ALLOW_HIGHDPI was renamed SDL_WINDOW_HIGH_PIXEL_DENSITY.
+    window->surface = SDL_CreateWindow(
+        window->title,
+        window->width,
+        window->height,
+        SDL_WINDOW_RESIZABLE | SDL_WINDOW_HIGH_PIXEL_DENSITY | SDL_WINDOW_OPENGL | SDL_WINDOW_TRANSPARENT
+    );
+    if (!window->surface) {
+        l_fatal("SDL_CreateWindow Failure: %s", SDL_GetError());
+        return 1;
+    }
+
+    window->renderer = SDL_CreateRenderer(window->surface, NULL);
+    if (!window->renderer) {
+        l_fatal("SDL_CreateRenderer Failure: %s", SDL_GetError());
+        return 1;
+    }
+    SDL_SetRenderVSync(window->renderer, 1);
     SDL_SetRenderDrawBlendMode(window->renderer, SDL_BLENDMODE_BLEND);
+
     char *fpath = find_font_path(window->fontFamily);
     if (fpath) {
         l_debug("Resolved font '%s' to '%s'", window->fontFamily, fpath);
 
         window->font = TTF_OpenFont(fpath, window->fontSize > 0 ? window->fontSize : 12);
         if (!window->font) {
-            l_error("Failed to load font '%s'", TTF_GetError());
+            l_error("Failed to load font '%s'", SDL_GetError());
         }
         free(fpath);
     } else {

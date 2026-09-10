@@ -1,8 +1,11 @@
+#define _POSIX_C_SOURCE 200809L
+
 #include <stdio.h>
 #include <sys/stat.h>
 #include <errno.h>
 #include <stdlib.h>
 #include <limits.h>
+#include <ctype.h>
 #include <string.h>
 #include "../logger/logger.h"
 #include "../global.h"

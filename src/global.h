@@ -1,6 +1,6 @@
 #pragma once
-#include <SDL2/SDL.h>
-#include <SDL2/SDL_ttf.h>
+#include <SDL3/SDL.h>
+#include <SDL3_ttf/SDL_ttf.h>
 #include <stdlib.h>
 #include <string.h>
 
@@ -98,20 +98,20 @@ typedef struct ChordBinding {
 
 static const ChordBinding BIND_TABLE[] = {
     // Single Keypress Binds
-    { {0, 0},       {SDLK_LEFT, 0},         ACTION_MOVE_LEFT },
-    { {0, 0},       {SDLK_RIGHT, 0},        ACTION_MOVE_RIGHT},
-    { {0, 0},       {SDLK_UP, 0},           ACTION_MOVE_UP   },
-    { {0, 0},       {SDLK_DOWN, 0},         ACTION_MOVE_DOWN },
+    { {0, 0},       {SDLK_LEFT, 0},             ACTION_MOVE_LEFT },
+    { {0, 0},       {SDLK_RIGHT, 0},            ACTION_MOVE_RIGHT},
+    { {0, 0},       {SDLK_UP, 0},               ACTION_MOVE_UP   },
+    { {0, 0},       {SDLK_DOWN, 0},             ACTION_MOVE_DOWN },
 
-    { {0, 0},       {SDLK_h, KMOD_CTRL},    ACTION_MOVE_LEFT },
-    { {0, 0},       {SDLK_l, KMOD_CTRL},    ACTION_MOVE_RIGHT},
-    { {0, 0},       {SDLK_j, KMOD_CTRL},    ACTION_MOVE_DOWN },
-    { {0, 0},       {SDLK_k, KMOD_CTRL},    ACTION_MOVE_UP   },
+    { {0, 0},       {SDLK_H, SDL_KMOD_CTRL},    ACTION_MOVE_LEFT },
+    { {0, 0},       {SDLK_L, SDL_KMOD_CTRL},    ACTION_MOVE_RIGHT},
+    { {0, 0},       {SDLK_J, SDL_KMOD_CTRL},    ACTION_MOVE_DOWN },
+    { {0, 0},       {SDLK_K, SDL_KMOD_CTRL},    ACTION_MOVE_UP   },
 
-    { {SDLK_x, KMOD_CTRL}, {SDLK_s, KMOD_CTRL}, ACTION_TRIGGER_SAVE},
-    { {SDLK_x, KMOD_CTRL}, {SDLK_f, KMOD_CTRL}, ACTION_TRIGGER_LOAD},
-    { {SDLK_x, KMOD_CTRL}, {SDLK_c, KMOD_CTRL}, ACTION_CLOSE_WIN},
-    { {SDLK_x, KMOD_CTRL}, {SDLK_n, KMOD_CTRL}, ACTION_NEW_BUFFER},
+    { {SDLK_X, SDL_KMOD_CTRL}, {SDLK_S, SDL_KMOD_CTRL}, ACTION_TRIGGER_SAVE},
+    { {SDLK_X, SDL_KMOD_CTRL}, {SDLK_F, SDL_KMOD_CTRL}, ACTION_TRIGGER_LOAD},
+    { {SDLK_X, SDL_KMOD_CTRL}, {SDLK_C, SDL_KMOD_CTRL}, ACTION_CLOSE_WIN},
+    { {SDLK_X, SDL_KMOD_CTRL}, {SDLK_N, SDL_KMOD_CTRL}, ACTION_NEW_BUFFER},
 };
 
 #define BINDING_COUNT (sizeof(BIND_TABLE) / sizeof(BIND_TABLE[0]))
@@ -124,7 +124,7 @@ typedef enum PromptType {
 
 typedef struct InputDispatcher {
     KeyCombo pending_leader;
-    Uint32 leader_timestamp;
+    Uint64 leader_timestamp;
 
     PromptType active_prompt;
     char       prompt_buffer[256];

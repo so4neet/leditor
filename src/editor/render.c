@@ -1,25 +1,28 @@
-#include <SDL2/SDL.h>
-#include <SDL2/SDL_surface.h>
-#include <SDL2/SDL_ttf.h>
-#include "../logger/logger.h"
+#include <stdio.h>
+#include <SDL3/SDL.h>
+#include <SDL3/SDL_surface.h>
+#include <SDL3_ttf/SDL_ttf.h>
 #include "../global.h"
 
 GlyphAtlas *create_glyph_atlas(SDL_Renderer *renderer, TTF_Font *font, SDL_Color color) {
     GlyphAtlas *atlas = calloc(1, sizeof(GlyphAtlas));
+    if (!atlas) return NULL;
 
-    TTF_SizeText(font, "M", &atlas->char_w, &atlas->char_h);
+    // SDL3_ttf: TTF_SizeText() -> TTF_GetStringSize(), takes a length param and returns bool.
+    TTF_GetStringSize(font, "M", 0, &atlas->char_w, &atlas->char_h);
 
     atlas->cols = 10;
     int rows = (ASCII_NUM_CHARS + atlas->cols - 1) / atlas->cols;
     int atlas_w = atlas->cols * atlas->char_w;
     int atlas_h = rows * atlas->char_h;
 
-    SDL_Surface *atlas_surface = SDL_CreateRGBSurfaceWithFormat(0, atlas_w, atlas_h, 32, SDL_PIXELFORMAT_RGBA32);
+    // SDL3: SDL_CreateRGBSurfaceWithFormat() -> SDL_CreateSurface(w, h, format), no flags/depth params.
+    SDL_Surface *atlas_surface = SDL_CreateSurface(atlas_w, atlas_h, SDL_PIXELFORMAT_RGBA32);
 
     // Render each character into a slot
     for (int i=0; i < ASCII_NUM_CHARS; i++) {
         char c = (char)(ASCII_FIRST_CHAR + i);
-	SDL_Surface *glyph_surface = TTF_RenderGlyph_Blended(font, c, color);
+	SDL_Surface *glyph_surface = TTF_RenderGlyph_Blended(font, (Uint32)c, color);
 	if (!glyph_surface) continue;
 
 	int grid_x = (i % atlas->cols) * atlas->char_w;
@@ -30,12 +33,12 @@ GlyphAtlas *create_glyph_atlas(SDL_Renderer *renderer, TTF_Font *font, SDL_Color
 	SDL_SetSurfaceBlendMode(glyph_surface, SDL_BLENDMODE_NONE);
 	SDL_BlitSurface(glyph_surface, NULL, atlas_surface, &dst_rect);
 
-	SDL_FreeSurface(glyph_surface);
+	SDL_DestroySurface(glyph_surface); // SDL3: SDL_FreeSurface() -> SDL_DestroySurface()
     }
 
     atlas->texture = SDL_CreateTextureFromSurface(renderer, atlas_surface);
     SDL_SetTextureBlendMode(atlas->texture, SDL_BLENDMODE_BLEND);
-    SDL_FreeSurface(atlas_surface);
+    SDL_DestroySurface(atlas_surface);
 
     return atlas;
 }
@@ -51,21 +54,22 @@ void render_char(SDL_Renderer *renderer, GlyphAtlas *atlas, char c, int x, int y
 
     int index = c - ASCII_FIRST_CHAR;
 
-    SDL_Rect src = {
-        .x = (index % atlas->cols) * atlas->char_w,
-        .y = (index / atlas->cols) * atlas->char_h,
-        .w = atlas->char_w,
-        .h = atlas->char_h
+    // SDL3: renderer draw calls take SDL_FRect (floating point), not SDL_Rect.
+    SDL_FRect src = {
+        .x = (float)((index % atlas->cols) * atlas->char_w),
+        .y = (float)((index / atlas->cols) * atlas->char_h),
+        .w = (float)atlas->char_w,
+        .h = (float)atlas->char_h
     };
 
-    SDL_Rect dst = {
-        .x = x,
-        .y = y,
-        .w = atlas->char_w,
-        .h = atlas->char_h
+    SDL_FRect dst = {
+        .x = (float)x,
+        .y = (float)y,
+        .w = (float)atlas->char_w,
+        .h = (float)atlas->char_h
     };
 
-    SDL_RenderCopy(renderer, atlas->texture, &src, &dst);
+    SDL_RenderTexture(renderer, atlas->texture, &src, &dst); // SDL3: SDL_RenderCopy() -> SDL_RenderTexture()
 }
 
 void render_line_atlas(SDL_Renderer *renderer, GlyphAtlas *atlas, const char *text, size_t len, int x, int y) {
@@ -103,11 +107,11 @@ void render_buffer(SDL_Renderer *renderer, GlyphAtlas *atlas, InputBuffer *buffe
             int cursor_screen_x = (int)((buffer->cursor_col - buffer->scroll_col) * atlas->char_w);
             int cursor_screen_y = (int)((buffer->cursor_row - buffer->scroll_row) * atlas->char_h);
 
-            SDL_Rect cursor_rect = {
-                .x = cursor_screen_x,
-                .y = cursor_screen_y,
-                .w = atlas->char_w, // 2px block or line cursor
-                .h = atlas->char_h
+            SDL_FRect cursor_rect = {
+                .x = (float)cursor_screen_x,
+                .y = (float)cursor_screen_y,
+                .w = (float)atlas->char_w,
+                .h = (float)atlas->char_h
             };
 
             SDL_SetRenderDrawColor(renderer, 220, 220, 220, 255);
@@ -117,7 +121,7 @@ void render_buffer(SDL_Renderer *renderer, GlyphAtlas *atlas, InputBuffer *buffe
 
 void render_stat_bar(SDL_Renderer *renderer, GlyphAtlas *atlas, InputBuffer *buffer, InputDispatcher *dispatcher, int win_width, int win_height) {
     int bar_height = atlas->char_h + 6;
-    SDL_Rect bar_rect = {0, win_height - bar_height, win_width, bar_height};
+    SDL_FRect bar_rect = {0.0f, (float)(win_height - bar_height), (float)win_width, (float)bar_height};
 
     SDL_SetRenderDrawColor(renderer, 35, 35, 35, 255);
     SDL_RenderFillRect(renderer, &bar_rect);
@@ -130,7 +134,7 @@ void render_stat_bar(SDL_Renderer *renderer, GlyphAtlas *atlas, InputBuffer *buf
         if (dispatcher->active_prompt == PROMPT_LOAD_BUFFER) { prefix = "Load File: "; }
         snprintf(status_text, sizeof(status_text), "%s%s_", prefix, dispatcher->prompt_buffer);
     } else if (dispatcher->pending_leader.key != 0) {
-        snprintf(status_text, sizeof(status_text), "Mod->%c-", dispatcher->pending_leader.key);
+        snprintf(status_text, sizeof(status_text), "Mod->%c-", (char)dispatcher->pending_leader.key);
     } else {
         snprintf(status_text, sizeof(status_text), "| LED | Row: %zu | Col: %zu | Lines: %zu |", buffer->cursor_row + 1, buffer->cursor_col + 1, buffer->line_count);
     }

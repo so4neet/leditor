@@ -1,7 +1,7 @@
-#include <SDL2/SDL.h>
-#include <SDL2/SDL_keyboard.h>
-#include <SDL2/SDL_keycode.h>
-#include <SDL2/SDL_ttf.h>
+#include <SDL3/SDL.h>
+#include <SDL3/SDL_keyboard.h>
+#include <SDL3/SDL_keycode.h>
+#include <SDL3_ttf/SDL_ttf.h>
 #include "global.h"
 #include "logger/logger.h"
 #include "config/config.h"
@@ -33,24 +33,23 @@ int main(int argc, char **argv) {
 
     InputDispatcher dispatcher = {0};
 
-    SDL_StartTextInput();
+    SDL_StartTextInput(window->surface);
 
     while (!window->shouldClose) {
         // Make sure the window knows what size it is. Probably inefficient but oh well.
         SDL_Event event = {0};
         while (SDL_PollEvent(&event)) {
             switch (event.type) {
-                case SDL_WINDOWEVENT:
-                    if (event.window.event == SDL_WINDOWEVENT_RESIZED || event.window.event == SDL_WINDOWEVENT_SIZE_CHANGED) {
-                        SDL_GetRendererOutputSize(window->renderer, &window->width, &window->height);
-                    }
+                case SDL_EVENT_WINDOW_RESIZED:
+                case SDL_EVENT_WINDOW_PIXEL_SIZE_CHANGED:
+                    SDL_GetCurrentRenderOutputSize(window->renderer, &window->width, &window->height);
                     break;
 
-                case SDL_QUIT:
+                case SDL_EVENT_QUIT:
                     window->shouldClose = 1;
                     break;
 
-                case SDL_TEXTINPUT:
+                case SDL_EVENT_TEXT_INPUT:
                     // stat-bar prompt
                     if (dispatcher.active_prompt != PROMPT_NONE) {
                         for (int i = 0; event.text.text[i] != '\0'; i++) {
@@ -73,19 +72,20 @@ int main(int argc, char **argv) {
                     }
                     break;
 
-                case SDL_KEYDOWN: {
+                case SDL_EVENT_KEY_DOWN: {
                     // stat-bar prompt
                     if (dispatcher.active_prompt != PROMPT_NONE) {
-                        if (event.key.keysym.sym == SDLK_ESCAPE) {
+                        // SDL3: event.key.keysym.sym -> event.key.key
+                        if (event.key.key == SDLK_ESCAPE) {
                             // exit stat-bar
                             dispatcher.active_prompt = PROMPT_NONE;
                             dispatcher.prompt_len = 0;
                             dispatcher.prompt_buffer[0] = '\0';
-                        } else if (event.key.keysym.sym == SDLK_BACKSPACE) {
+                        } else if (event.key.key == SDLK_BACKSPACE) {
                             if (dispatcher.prompt_len > 0) {
                                 dispatcher.prompt_buffer[--dispatcher.prompt_len] = '\0';
                             }
-                        } else if (event.key.keysym.sym == SDLK_RETURN) {
+                        } else if (event.key.key == SDLK_RETURN) {
                             // run command
                             if (dispatcher.prompt_len > 0) {
                                 if (dispatcher.active_prompt == PROMPT_SAVE_BUFFER) {
@@ -101,11 +101,11 @@ int main(int argc, char **argv) {
                         break;
                     }
                     // text editing
-                    if (event.key.keysym.sym == SDLK_BACKSPACE) {
+                    if (event.key.key == SDLK_BACKSPACE) {
                         buffer_remove_line(buffer);
                         break;
                     }
-                    if (event.key.keysym.sym == SDLK_RETURN) {
+                    if (event.key.key == SDLK_RETURN) {
                         buffer_split_line(buffer);
                         break;
                     }
@@ -130,14 +130,14 @@ int main(int argc, char **argv) {
         }
         buffer_clamp_scroll(buffer, window->atlas, window->width, window->height);
         SDL_SetRenderDrawBlendMode(window->renderer, SDL_BLENDMODE_BLEND);
-        SDL_SetRenderDrawColor(window->renderer, 20, 20, 20, 50);
+        SDL_SetRenderDrawColor(window->renderer, 20, 20, 20, 204);
         SDL_RenderClear(window->renderer);
 
         render_buffer(window->renderer, window->atlas, buffer, window->height);
         render_stat_bar(window->renderer, window->atlas, buffer, &dispatcher, window->width, window->height);
         SDL_RenderPresent(window->renderer);
     }
-    SDL_StopTextInput();
+    SDL_StopTextInput(window->surface); // SDL3: also takes the window now
     destroy_buffer(buffer);
     destroy_glyph_atlas(window->atlas);
     TTF_Quit();

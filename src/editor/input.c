@@ -1,20 +1,21 @@
-#include <SDL2/SDL.h>
-#include <SDL2/SDL_keycode.h>
+#include <SDL3/SDL.h>
+#include <SDL3/SDL_keycode.h>
 #include "../global.h"
 
 uint16_t clean_modifiers(uint16_t mod) {
     uint16_t cleaned = 0;
-    if (mod & KMOD_CTRL)    cleaned |= KMOD_CTRL;
-    if (mod & KMOD_ALT)     cleaned |= KMOD_ALT;
-    if (mod & KMOD_SHIFT)   cleaned |= KMOD_SHIFT;
-    if (mod & KMOD_GUI)     cleaned |= KMOD_GUI;
+    if (mod & SDL_KMOD_CTRL)    cleaned |= SDL_KMOD_CTRL;
+    if (mod & SDL_KMOD_ALT)     cleaned |= SDL_KMOD_ALT;
+    if (mod & SDL_KMOD_SHIFT)   cleaned |= SDL_KMOD_SHIFT;
+    if (mod & SDL_KMOD_GUI)     cleaned |= SDL_KMOD_GUI;
     return cleaned;
 }
 
 EditorAction dispatch_key(InputDispatcher *dispatcher, SDL_Event *event) {
-    SDL_Keycode key = event->key.keysym.sym;
+    // event->key.keysym.sym -> event->key.key,
+    // event->key.keysym.mod -> event->key.mod.
+    SDL_Keycode key = event->key.key;
 
-    // 1. Ignore pure modifier key events (e.g. pressing/releasing Ctrl itself)
     if (key == SDLK_LCTRL || key == SDLK_RCTRL ||
         key == SDLK_LSHIFT || key == SDLK_RSHIFT ||
         key == SDLK_LALT || key == SDLK_RALT ||
@@ -22,24 +23,21 @@ EditorAction dispatch_key(InputDispatcher *dispatcher, SDL_Event *event) {
         return ACTION_NONE;
     }
 
-    uint16_t mod = clean_modifiers(event->key.keysym.mod);
+    uint16_t mod = clean_modifiers(event->key.mod);
     KeyCombo current_input = { key, mod };
 
-    // 2. Check chord timeout (e.g. 1 second elapsed)
     if (dispatcher->pending_leader.key != 0) {
         if (SDL_GetTicks() - dispatcher->leader_timestamp > 1000) {
             dispatcher->pending_leader = (KeyCombo){0, 0};
         }
     }
 
-    // 3. Process Secondary Key in a Chord
     if (dispatcher->pending_leader.key != 0) {
         KeyCombo leader = dispatcher->pending_leader;
 
         for (size_t i = 0; i < BINDING_COUNT; i++) {
             const ChordBinding *b = &BIND_TABLE[i];
 
-            // Match full chord: Leader + Trigger
             if (b->leader.key == leader.key &&
                 b->leader.mod == leader.mod &&
                 b->trigger.key == current_input.key &&
@@ -50,12 +48,10 @@ EditorAction dispatch_key(InputDispatcher *dispatcher, SDL_Event *event) {
             }
         }
 
-        // Unmatched secondary key sequence: reset leader state
         dispatcher->pending_leader = (KeyCombo){0, 0};
         return ACTION_NONE;
     }
 
-    // 4. Check if current key is a Leader for a Chord (e.g. C-x)
     for (size_t i = 0; i < BINDING_COUNT; i++) {
         const ChordBinding *b = &BIND_TABLE[i];
         if (b->leader.key == current_input.key &&
@@ -68,7 +64,6 @@ EditorAction dispatch_key(InputDispatcher *dispatcher, SDL_Event *event) {
         }
     }
 
-    // 5. Check Single Key / Direct Bindings
     for (size_t i = 0; i < BINDING_COUNT; i++) {
         const ChordBinding *b = &BIND_TABLE[i];
         if (b->leader.key == 0 &&
