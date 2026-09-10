@@ -55,6 +55,8 @@ typedef struct InputBuffer {
     size_t  cursor_row;
     size_t  cursor_col;
     size_t  preferred_col;
+    size_t  scroll_row;
+    size_t  scroll_col;
 } InputBuffer;
 
 typedef enum log_lvl {
@@ -70,13 +72,17 @@ typedef enum EditorAction {
     ACTION_MOVE_RIGHT,
     ACTION_MOVE_UP,
     ACTION_MOVE_DOWN,
+    ACTION_NEW_BUFFER,
     ACTION_SAVE_BUFFER,
     ACTION_LOAD_BUFFER,
     ACTION_PAGE_UP,
     ACTION_PAGE_DOWN,
     ACTION_DELETE_LINE,
     ACTION_DELETE_WORD_PREV,
-    ACTION_DELETE_WORD_NEXT
+    ACTION_DELETE_WORD_NEXT,
+    ACTION_TRIGGER_SAVE,
+    ACTION_TRIGGER_LOAD,
+    ACTION_CLOSE_WIN,
 } EditorAction;
 
 typedef struct KeyCombo {
@@ -101,11 +107,26 @@ static const ChordBinding BIND_TABLE[] = {
     { {0, 0},       {SDLK_l, KMOD_CTRL},    ACTION_MOVE_RIGHT},
     { {0, 0},       {SDLK_j, KMOD_CTRL},    ACTION_MOVE_DOWN },
     { {0, 0},       {SDLK_k, KMOD_CTRL},    ACTION_MOVE_UP   },
+
+    { {SDLK_x, KMOD_CTRL}, {SDLK_s, KMOD_CTRL}, ACTION_TRIGGER_SAVE},
+    { {SDLK_x, KMOD_CTRL}, {SDLK_f, KMOD_CTRL}, ACTION_TRIGGER_LOAD},
+    { {SDLK_x, KMOD_CTRL}, {SDLK_c, KMOD_CTRL}, ACTION_CLOSE_WIN},
+    { {SDLK_x, KMOD_CTRL}, {SDLK_n, KMOD_CTRL}, ACTION_NEW_BUFFER},
 };
 
 #define BINDING_COUNT (sizeof(BIND_TABLE) / sizeof(BIND_TABLE[0]))
 
+typedef enum PromptType {
+    PROMPT_NONE = 0,
+    PROMPT_SAVE_BUFFER,
+    PROMPT_LOAD_BUFFER
+} PromptType;
+
 typedef struct InputDispatcher {
     KeyCombo pending_leader;
     Uint32 leader_timestamp;
+
+    PromptType active_prompt;
+    char       prompt_buffer[256];
+    size_t     prompt_len;
 } InputDispatcher;

@@ -74,41 +74,65 @@ void render_line_atlas(SDL_Renderer *renderer, GlyphAtlas *atlas, const char *te
     }
 }
 
-void render_buffer(SDL_Renderer *renderer, GlyphAtlas *atlas, InputBuffer *buffer, SDL_Color textColor) {
-    int margin_x = 20;
-    int margin_y = 20;  // Make these configurable in the future
+void render_buffer(SDL_Renderer *renderer, GlyphAtlas *atlas, InputBuffer *buffer, int win_height) {
+    int bar_height = atlas->char_h + 6;
+        int visible_height = win_height - bar_height;
+        size_t visible_rows = visible_height / atlas->char_h;
 
-    int char_w = atlas->char_w;
-    int char_h = atlas->char_h;
-    int line_height = char_h + 2;  // Make this configurable in the future
+        for (size_t r = 0; r < visible_rows; r++) {
+            size_t line_idx = buffer->scroll_row + r;
+            if (line_idx >= buffer->line_count) break;
 
-    SDL_SetTextureColorMod(atlas->texture, textColor.r, textColor.g, textColor.b);
-    SDL_SetTextureAlphaMod(atlas->texture, textColor.a);
+            Line *line = &buffer->lines[line_idx];
 
-    for (size_t i=0; i < buffer->line_count; i++) {
-        Line *line = &buffer->lines[i];
-        if (line->length == 0) continue;
+            if (line->length > buffer->scroll_col) {
+                const char *visible_text = &line->data[buffer->scroll_col];
+                size_t visible_len = line->length - buffer->scroll_col;
 
-        int line_y = margin_y + (int)(i * line_height);
+                int screen_x = 0;
+                int screen_y = (int)(r * atlas->char_h);
 
-        for (size_t col = 0; col < line->length; col++) {
-            char c = line->data[col];
-            int char_x = margin_x + (int)(col * char_w);
+                render_line_atlas(renderer, atlas, visible_text, visible_len, screen_x, screen_y);
+            }
+        }
 
-            render_char(renderer, atlas, c, char_x, line_y);
+        if (buffer->cursor_row >= buffer->scroll_row &&
+            buffer->cursor_row < buffer->scroll_row + visible_rows &&
+            buffer->cursor_col >= buffer->scroll_col)
+        {
+            int cursor_screen_x = (int)((buffer->cursor_col - buffer->scroll_col) * atlas->char_w);
+            int cursor_screen_y = (int)((buffer->cursor_row - buffer->scroll_row) * atlas->char_h);
+
+            SDL_Rect cursor_rect = {
+                .x = cursor_screen_x,
+                .y = cursor_screen_y,
+                .w = atlas->char_w, // 2px block or line cursor
+                .h = atlas->char_h
+            };
+
+            SDL_SetRenderDrawColor(renderer, 220, 220, 220, 255);
+            SDL_RenderFillRect(renderer, &cursor_rect);
         }
     }
 
-    int cursor_x = margin_x + (int)(buffer->cursor_col * char_w);
-    int cursor_y = margin_y + (int)(buffer->cursor_row * line_height);
+void render_stat_bar(SDL_Renderer *renderer, GlyphAtlas *atlas, InputBuffer *buffer, InputDispatcher *dispatcher, int win_width, int win_height) {
+    int bar_height = atlas->char_h + 6;
+    SDL_Rect bar_rect = {0, win_height - bar_height, win_width, bar_height};
 
-    SDL_Rect cursor_rect = {
-        .x = cursor_x,
-        .y = cursor_y,
-        .w = char_w,
-        .h = char_h
-    };
+    SDL_SetRenderDrawColor(renderer, 35, 35, 35, 255);
+    SDL_RenderFillRect(renderer, &bar_rect);
 
-    SDL_SetRenderDrawColor(renderer, 255, 255, 255, 255);
-    SDL_RenderFillRect(renderer, &cursor_rect);
+    char status_text[512] = {0};
+
+    if (dispatcher->active_prompt != PROMPT_NONE) {
+        const char *prefix = "::";
+        if (dispatcher->active_prompt == PROMPT_SAVE_BUFFER) { prefix = "Save Buffer: "; }
+        if (dispatcher->active_prompt == PROMPT_LOAD_BUFFER) { prefix = "Load File: "; }
+        snprintf(status_text, sizeof(status_text), "%s%s_", prefix, dispatcher->prompt_buffer);
+    } else if (dispatcher->pending_leader.key != 0) {
+        snprintf(status_text, sizeof(status_text), "Mod->%c-", dispatcher->pending_leader.key);
+    } else {
+        snprintf(status_text, sizeof(status_text), "| LED | Row: %zu | Col: %zu | Lines: %zu |", buffer->cursor_row + 1, buffer->cursor_col + 1, buffer->line_count);
+    }
+    render_line_atlas(renderer, atlas, status_text, strlen(status_text), 0, win_height - bar_height + 3);
 }

@@ -36,15 +36,33 @@ int main(int argc, char **argv) {
     SDL_StartTextInput();
 
     while (!window->shouldClose) {
+        // Make sure the window knows what size it is. Probably inefficient but oh well.
         SDL_Event event = {0};
         while (SDL_PollEvent(&event)) {
             switch (event.type) {
+                case SDL_WINDOWEVENT:
+                    if (event.window.event == SDL_WINDOWEVENT_RESIZED || event.window.event == SDL_WINDOWEVENT_SIZE_CHANGED) {
+                        SDL_GetRendererOutputSize(window->renderer, &window->width, &window->height);
+                    }
+                    break;
+
                 case SDL_QUIT:
                     window->shouldClose = 1;
                     break;
 
                 case SDL_TEXTINPUT:
-                    if (dispatcher.pending_leader.key == 0) {
+                    // stat-bar prompt
+                    if (dispatcher.active_prompt != PROMPT_NONE) {
+                        for (int i = 0; event.text.text[i] != '\0'; i++) {
+                            char c = event.text.text[i];
+                            if (c >= 32 && c <= 126 && dispatcher.prompt_len < sizeof(dispatcher.prompt_buffer) - 1) {
+                                dispatcher.prompt_buffer[dispatcher.prompt_len++] = c;
+                                dispatcher.prompt_buffer[dispatcher.prompt_len] = '\0';
+                            }
+                        }
+                    }
+                    // text editing
+                    else if (dispatcher.pending_leader.key == 0) {
                         for (int i = 0; event.text.text[i] != '\0'; i++) {
                             unsigned char c = (unsigned char)event.text.text[i];
                             if (c >= 32 && c <= 126) {
@@ -56,6 +74,33 @@ int main(int argc, char **argv) {
                     break;
 
                 case SDL_KEYDOWN: {
+                    // stat-bar prompt
+                    if (dispatcher.active_prompt != PROMPT_NONE) {
+                        if (event.key.keysym.sym == SDLK_ESCAPE) {
+                            // exit stat-bar
+                            dispatcher.active_prompt = PROMPT_NONE;
+                            dispatcher.prompt_len = 0;
+                            dispatcher.prompt_buffer[0] = '\0';
+                        } else if (event.key.keysym.sym == SDLK_BACKSPACE) {
+                            if (dispatcher.prompt_len > 0) {
+                                dispatcher.prompt_buffer[--dispatcher.prompt_len] = '\0';
+                            }
+                        } else if (event.key.keysym.sym == SDLK_RETURN) {
+                            // run command
+                            if (dispatcher.prompt_len > 0) {
+                                if (dispatcher.active_prompt == PROMPT_SAVE_BUFFER) {
+                                    buffer_save_file(buffer, dispatcher.prompt_buffer);
+                                } else if (dispatcher.active_prompt == PROMPT_LOAD_BUFFER) {
+                                    buffer_load_file(buffer, dispatcher.prompt_buffer);
+                                }
+                            }
+                            dispatcher.active_prompt = PROMPT_NONE;
+                            dispatcher.prompt_len = 0;
+                            dispatcher.prompt_buffer[0] = '\0';
+                        }
+                        break;
+                    }
+                    // text editing
                     if (event.key.keysym.sym == SDLK_BACKSPACE) {
                         buffer_remove_line(buffer);
                         break;
@@ -71,6 +116,10 @@ int main(int argc, char **argv) {
                         case ACTION_MOVE_RIGHT: buffer_move_cursor(buffer, 0,  1); break;
                         case ACTION_MOVE_UP:    buffer_move_cursor(buffer, -1, 0); break;
                         case ACTION_MOVE_DOWN:  buffer_move_cursor(buffer,  1, 0); break;
+                        case ACTION_TRIGGER_LOAD: dispatcher.active_prompt = PROMPT_LOAD_BUFFER; break;
+                        case ACTION_TRIGGER_SAVE: dispatcher.active_prompt = PROMPT_SAVE_BUFFER; break;
+                        case ACTION_CLOSE_WIN: window->shouldClose = 1; break;
+                            //case ACTION_NEW_BUFFER: buffer_clear(buffer);
                         case ACTION_NONE:
                         default:
                             break;
@@ -79,10 +128,13 @@ int main(int argc, char **argv) {
                 }
             }
         }
-        SDL_SetRenderDrawColor(window->renderer, 20, 20, 20, 255);
+        buffer_clamp_scroll(buffer, window->atlas, window->width, window->height);
+        SDL_SetRenderDrawBlendMode(window->renderer, SDL_BLENDMODE_BLEND);
+        SDL_SetRenderDrawColor(window->renderer, 20, 20, 20, 50);
         SDL_RenderClear(window->renderer);
 
-        render_buffer(window->renderer, window->atlas, buffer, text_color);
+        render_buffer(window->renderer, window->atlas, buffer, window->height);
+        render_stat_bar(window->renderer, window->atlas, buffer, &dispatcher, window->width, window->height);
         SDL_RenderPresent(window->renderer);
     }
     SDL_StopTextInput();

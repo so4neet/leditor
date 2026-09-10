@@ -1,5 +1,6 @@
 #include <SDL2/SDL.h>
 #include <SDL2/SDL_ttf.h>
+#include <SDL2/SDL_video.h>
 #include <fontconfig/fontconfig.h>
 #include "../logger/logger.h"
 #include "../global.h"
@@ -45,6 +46,7 @@ int LED_Init_Window(LED_Window *window) {
     window->title = DEF_WIN_TITLE;
     window->width = DEF_WIN_WIDTH;
     window->height = DEF_WIN_HEIGHT;
+
     if (SDL_Init(SDL_INIT_VIDEO) != 0) {
       l_fatal("SDL_INIT_VIDEO Failure: %s", SDL_GetError());
       return 1;
@@ -54,9 +56,10 @@ int LED_Init_Window(LED_Window *window) {
         SDL_Quit();
         return 1;
     }
-
-    window->surface = SDL_CreateWindow(window->title, 0, 0, window->width, window->height, SDL_WINDOW_RESIZABLE);
-    window->renderer = SDL_CreateRenderer(window->surface, -1, SDL_RENDERER_ACCELERATED);
+    SDL_GL_SetAttribute(SDL_GL_ALPHA_SIZE, 8);
+    window->surface = SDL_CreateWindow(window->title, SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, window->width, window->height, SDL_WINDOW_RESIZABLE | SDL_WINDOW_ALLOW_HIGHDPI | SDL_WINDOW_OPENGL);
+    window->renderer = SDL_CreateRenderer(window->surface, -1, SDL_RENDERER_ACCELERATED | SDL_RENDERER_PRESENTVSYNC);
+    SDL_SetRenderDrawBlendMode(window->renderer, SDL_BLENDMODE_BLEND);
     char *fpath = find_font_path(window->fontFamily);
     if (fpath) {
         l_debug("Resolved font '%s' to '%s'", window->fontFamily, fpath);

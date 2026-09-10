@@ -221,6 +221,28 @@ int buffer_save_file(InputBuffer *buffer, const char *filepath) {
     return 0;
 }
 
+void buffer_clamp_scroll(InputBuffer *buffer, GlyphAtlas *atlas, int win_width, int win_height) {
+    int bar_height = atlas->char_h + 6;
+    int visible_height = win_height - bar_height;
+
+    size_t visible_rows = (size_t)(visible_height / atlas->char_h);
+    size_t visible_cols = (size_t)(win_width / atlas->char_w);
+    if (visible_rows == 0) visible_rows = 1;
+    if (visible_cols == 0) visible_cols = 1;
+
+    if (buffer->cursor_row < buffer->scroll_row) {
+        buffer->scroll_row = buffer->cursor_row;
+    } else if (buffer->cursor_row >= buffer->scroll_row + visible_rows) {
+        buffer->scroll_row = buffer->cursor_row - visible_rows + 1;
+    }
+
+    if (buffer->cursor_col < buffer->scroll_col) {
+        buffer->scroll_col = buffer->cursor_col;
+    } else if (buffer->cursor_col >= buffer->scroll_col + visible_cols) {
+        buffer->scroll_col = buffer->cursor_col - visible_cols + 1;
+    }
+}
+
 void destroy_buffer(InputBuffer *buffer) {
     buffer_clear(buffer);
     free(buffer->lines);
