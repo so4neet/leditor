@@ -161,6 +161,17 @@ void buffer_clear(InputBuffer *buffer) {
     buffer->line_count = 0;
 }
 
+void new_buffer(InputBuffer *buffer) {
+    buffer_clear(buffer);
+    buffer->line_capacity = 8;
+    buffer->lines = calloc(buffer->line_capacity, sizeof(Line));
+
+    buffer->lines[0].capacity = 32;
+    buffer->lines[0].data = calloc(buffer->lines[0].capacity, sizeof(char));
+    buffer->lines[0].length = 0;
+    buffer->line_count = 1;
+}
+
 int buffer_load_file(InputBuffer *buffer, const char *filepath) {
     FILE *f = fopen(filepath, "r");
     if (!f) return 0;

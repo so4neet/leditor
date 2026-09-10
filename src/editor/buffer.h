@@ -13,3 +13,4 @@ int buffer_save_file(InputBuffer *buffer, const char *filepath);
 void buffer_clear(InputBuffer *buffer);
 void destroy_buffer(InputBuffer *buffer);
 void buffer_clamp_scroll(InputBuffer *buffer, GlyphAtlas *atlas, int win_width, int win_height);
+void new_buffer(InputBuffer *buffer);

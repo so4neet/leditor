@@ -119,7 +119,7 @@ int main(int argc, char **argv) {
                         case ACTION_TRIGGER_LOAD: dispatcher.active_prompt = PROMPT_LOAD_BUFFER; break;
                         case ACTION_TRIGGER_SAVE: dispatcher.active_prompt = PROMPT_SAVE_BUFFER; break;
                         case ACTION_CLOSE_WIN: window->shouldClose = 1; break;
-                            //case ACTION_NEW_BUFFER: buffer_clear(buffer);
+                        case ACTION_NEW_BUFFER: new_buffer(buffer); break;
                         case ACTION_NONE:
                         default:
                             break;
